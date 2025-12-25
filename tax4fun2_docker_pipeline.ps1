@@ -40,7 +40,7 @@ Write-Host "OTU table: $prefix.otu_table.txt"
 # 5. OTU table formatting fix:
 $in = 'O:\tax4fun_data\vsearch_out\sample.otu_table.txt'
 $out = 'O:\tax4fun_data\vsearch_out\sample.otu_table_fixed.txt'
-"OTU_ID	Sample1" | Set-Content $out
+
 
 Get-Content $in | Where-Object { $_ -notmatch '^#' -and $_ -ne '' } | ForEach-Object {
     $fields = $_ -split '\t'
@@ -49,7 +49,7 @@ Get-Content $in | Where-Object { $_ -notmatch '^#' -and $_ -ne '' } | ForEach-Ob
     } elseif ($fields.Count -eq 1) {
         "$($_)`t1" | Add-Content $out
     }
-}
+} | Set-Content $out
 
 Get-Content "O:\tax4fun_data\vsearch_out\sample.otus.fasta" | ForEach-Object {
     if ($_ -like ">*") {
@@ -58,12 +58,12 @@ Get-Content "O:\tax4fun_data\vsearch_out\sample.otus.fasta" | ForEach-Object {
     } else {
         $_
     }
-} | Set-Content sample_fixed.otus.fasta
+} | Set-Content "O:\tax4fun_data\vsearch_out\sample_fixed.otus.fasta"
 
 # 6. Run Tax4Fun2 runRefBlast in Docker
-docker run --rm -v ${refdata}:/data -v ${outdir}:/input tax4fun2:latest Rscript -e "library(Tax4Fun2); runRefBlast(path_to_otus = '/input/sample_fixed.otus.fasta', path_to_reference_data = '/data', path_to_temp_folder = '/data/temp', database_mode = 'Ref100NR', use_force = TRUE, num_threads = 4)"
+docker run --rm -v ${refdata}:/data -v ${outdir}:/input tax4fun2:latest Rscript -e "library(Tax4Fun2); runRefBlast(path_to_otus = '/input/sample_fixed.otus.fasta', path_to_reference_data = '/data', path_to_temp_folder = '/data/temp', database_mode = 'Ref100NR', use_force = TRUE, num_threads = 24)"
 
 # 7. Run Tax4Fun2 makeFunctionalPrediction in Docker
-docker run --rm -v ${refdata}:/data -v ${outdir}:/input tax4fun2:latest Rscript -e "library(Tax4Fun2); makeFunctionalPrediction(path_to_otu_table = '/input/sample.otu_table_fixed.txt', path_to_reference_data = '/data', path_to_temp_folder = '/data/temp', database_mode = 'Ref99NR', normalize_by_copy_number = TRUE, min_identity_to_reference = 0.97)"
+docker run --rm -v ${refdata}:/data -v ${outdir}:/input tax4fun2:latest Rscript -e "library(Tax4Fun2); makeFunctionalPrediction(path_to_otu_table = '/input/sample.otu_table_fixed.txt', path_to_reference_data = '/data', path_to_temp_folder = '/data/temp', database_mode = 'Ref100NR', normalize_by_copy_number = TRUE, min_identity_to_reference = 0.97)"
 
 Write-Host "Tax4Fun2 functional prediction finished. Check /data/temp in your reference data directory for results."
